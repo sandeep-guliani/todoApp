@@ -1,0 +1,14 @@
+button {
+    width: auto;
+    margin: 5px;
+  }
+  
+  td {
+    vertical-align: unset;
+  }
+
+  input {
+    width : 550px;
+    height: 35px;
+
+  }

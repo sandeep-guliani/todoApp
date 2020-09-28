@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 // Todo represents a todo item
@@ -22,7 +23,7 @@ var todoList []Todo
 func initializeList() {
 
 	todoList = append(todoList, Todo{ID: "1", Title: "Pay Credit card bill", Completed: false})
-	todoList = append(todoList, Todo{ID: "2", Title: "Buy new laptop", Completed: false})
+	todoList = append(todoList, Todo{ID: "2", Title: "Buy new laptop", Completed: true})
 
 }
 
@@ -70,6 +71,24 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(todoList)
 }
 
+func completeTodo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r)
+	for index, item := range todoList {
+		if item.ID == params["id"] {
+			todoList = append(todoList[:index], todoList[index+1:]...)
+			var todo Todo
+			_ = json.NewDecoder(r.Body).Decode(&todo)
+			todo.ID = params["id"]
+			todo.Completed = true
+			todoList = append(todoList, todo)
+			json.NewEncoder(w).Encode(&todo)
+			return
+		}
+	}
+	json.NewEncoder(w).Encode(todoList)
+}
+
 func deleteTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
@@ -84,6 +103,11 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"}, // All origins
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+	})
+
 	router := mux.NewRouter()
 
 	initializeList()
@@ -91,8 +115,8 @@ func main() {
 	router.HandleFunc("/todo", getTodos).Methods("GET")
 	router.HandleFunc("/todo", createTodo).Methods("POST")
 	router.HandleFunc("/todo/{id}", getTodo).Methods("GET")
-	router.HandleFunc("/todo/{id}", updateTodo).Methods("PUT")
+	router.HandleFunc("/todo/{id}", completeTodo).Methods("PUT")
 	router.HandleFunc("/todo/{id}", deleteTodo).Methods("DELETE")
 
-	log.Fatal(http.ListenAndServe(":8000", router))
+	log.Fatal(http.ListenAndServe(":8000", c.Handler(router)))
 }
